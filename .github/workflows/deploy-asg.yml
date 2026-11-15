@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: us-east-1
-  S3_BUCKET: finance-tracker-releases  # Criar este bucket
+  AWS_REGION: us-east-2
+  S3_BUCKET: projeto-finance-tracker-fullcycle-435123498505-us-east-2-an  # Criar este bucket
   APP_NAME: finance-tracker
   ASG_NAME: finance-tracker-asg
-  LAUNCH_TEMPLATE_NAME: finance-tracker-launch-template
+  LAUNCH_TEMPLATE_NAME: finance-tracker-lauch-template
 
 jobs:
   deploy:
@@ -100,7 +100,7 @@ jobs:
               }]
             }" \
             --query 'LaunchTemplateVersion.VersionNumber' \
-            --output text)
+            --output text) 
           
           echo "lt_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "🚀 Launch Template versão $NEW_VERSION criada"
