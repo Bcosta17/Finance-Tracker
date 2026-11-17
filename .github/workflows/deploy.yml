@@ -3,36 +3,38 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # Deploy quando houver push na branch main
-  workflow_dispatch:  # Permite executar manualmente
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
-    
+
     steps:
       # 1. Checkout do código
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       # 2. Setup Go
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      
+
       # 3. Executar testes
       - name: Run tests
         run: |
+          set -e
           go mod download
           go test ./... -v
-      
+
       # 4. Build do binário para Linux AMD64
       - name: Build binary
         run: |
+          set -e
           GOOS=linux GOARCH=amd64 go build -o finance-tracker ./cmd/api
-      
+
       # 5. Deploy para EC2
       - name: Deploy to EC2
         env:
@@ -40,42 +42,85 @@ jobs:
           EC2_USER: ${{ secrets.EC2_USER }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
+          set -euo pipefail
+
           # Criar chave SSH temporária
           echo "$EC2_SSH_KEY" > deploy_key.pem
           chmod 600 deploy_key.pem
-          
+
+          # Garantir que a chave seja removida mesmo em caso de falha
+          trap 'rm -f deploy_key.pem' EXIT
+
           # Copiar binário para EC2
-          scp -i deploy_key.pem -o StrictHostKeyChecking=no \
-            finance-tracker ${EC2_USER}@${EC2_HOST}:/tmp/finance-tracker
-          
+          scp -i deploy_key.pem \
+            -o StrictHostKeyChecking=no \
+            finance-tracker \
+            "${EC2_USER}@${EC2_HOST}:/tmp/finance-tracker"
+
           # Conectar na EC2 e fazer deploy
-          ssh -i deploy_key.pem -o StrictHostKeyChecking=no \
-            ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
+          ssh -i deploy_key.pem \
+            -o StrictHostKeyChecking=no \
+            "${EC2_USER}@${EC2_HOST}" << 'ENDSSH'
+
+            set -euo pipefail
+
+            # Diretório utilizado pelo serviço
+            APP_DIR="/home/$(whoami)/financetracker"
+            APP="$APP_DIR/finance-tracker"
+
+            echo "Iniciando deploy em: $APP"
+
+            # Verificar se o diretório existe
+            if [ ! -d "$APP_DIR" ]; then
+              echo "ERRO: Diretório $APP_DIR não encontrado."
+              exit 1
+            fi
+
             # Parar o serviço
             sudo systemctl stop finance-tracker
-            
-            # Backup do binário anterior
-            sudo cp /opt/finance-tracker/finance-tracker /opt/finance-tracker/finance-tracker.backup || true
-            
-            # Mover novo binário
-            sudo mv /tmp/finance-tracker /opt/finance-tracker/finance-tracker
-            sudo chmod +x /opt/finance-tracker/finance-tracker
-            sudo chown ec2-user:ec2-user /opt/finance-tracker/finance-tracker
-            
+
+            # Backup do binário anterior, caso exista
+            if sudo test -f "$APP"; then
+              sudo cp "$APP" "$APP.backup"
+              echo "Backup criado: $APP.backup"
+            fi
+
+            # Substituir o binário
+            sudo mv /tmp/finance-tracker "$APP"
+
+            # Ajustar permissões
+            sudo chmod +x "$APP"
+            sudo chown "$(whoami):$(whoami)" "$APP"
+
             # Reiniciar o serviço
-            sudo systemctl start finance-tracker
-            
-            # Verificar status
-            sudo systemctl status finance-tracker
-            
-            # Aguardar 2 segundos e fazer health check
-            sleep 2
-            curl -f http://localhost:8080/health || exit 1
+            sudo systemctl restart finance-tracker
+
+            # Verificar se o serviço está ativo
+            sudo systemctl is-active --quiet finance-tracker
+
+            echo "Serviço iniciado. Aguardando health check..."
+
+            # Aguardar a aplicação responder (até 20 segundos)
+            for i in {1..10}; do
+              if curl -fsS http://localhost:8080/health; then
+                echo ""
+                echo "Health check realizado com sucesso!"
+                exit 0
+              fi
+
+              echo "Tentativa $i/10. Aguardando 2 segundos..."
+              sleep 2
+            done
+
+            echo "ERRO: Health check falhou após 20 segundos."
+
+            # Exibir logs para facilitar o diagnóstico
+            sudo journalctl -u finance-tracker -n 50 --no-pager
+
+            exit 1
+
           ENDSSH
-          
-          # Limpar chave temporária
-          rm -f deploy_key.pem
-      
+
       # 6. Notificar sucesso
       - name: Deployment successful
-        run: echo "✅ Deploy realizado com sucesso!"
+        run: echo "Deploy realizado com sucesso!"
