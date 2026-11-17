@@ -47,7 +47,7 @@ Audience: sts.amazonaws.com
       "Condition": {
         "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:danielgundim/finance-tracker:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub": "repo:bcosta17/Finance-Tracker:ref:refs/heads/main"
         }
       }
     }
@@ -61,8 +61,8 @@ Audience: sts.amazonaws.com
 2. **Trusted entity type**: `Web identity`
 3. **Identity provider**: `token.actions.githubusercontent.com`
 4. **Audience**: `sts.amazonaws.com`
-5. **GitHub organization**: `danielgundim`
-6. **GitHub repository**: `finance-tracker`
+5. **GitHub organization**: `bcosta17`
+6. **GitHub repository**: `Finance-Tracker`
 7. **GitHub branch**: `main`
 8. **Role name**: `GitHubActionsDeployRole`
 
@@ -83,7 +83,7 @@ cat > trust-policy.json << 'EOF'
       "Condition": {
         "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:danielgundim/finance-tracker:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub": "repo:bcosta17/Finance-Tracker:ref:refs/heads/main"
         }
       }
     }
@@ -102,8 +102,8 @@ aws iam create-role \
 ```
 
 **Importante**: No `sub`, o formato é sempre `repo:OWNER/REPO:ref:refs/heads/BRANCH`
-- `OWNER` = `danielgundim` (seu username do GitHub)
-- `REPO` = `finance-tracker`
+- `OWNER` = `bcosta17` (seu username do GitHub)
+- `REPO` = `Finance-Tracker`
 - `BRANCH` = `main`
 
 #### 2.3. Anexar políticas ao Role

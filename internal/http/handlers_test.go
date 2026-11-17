@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/danielgundim/finance-tracker/internal/finance"
+	"github.com/bcosta17/Finance-Tracker/internal/finance"
 )
 
 func TestPOSTListSummary(t *testing.T) {

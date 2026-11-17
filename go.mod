@@ -1,4 +1,4 @@
-module github.com/danielgundim/finance-tracker
+module github.com/bcosta17/Finance-Tracker
 
 go 1.22
 

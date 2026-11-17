@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	httpapi "github.com/danielgundim/finance-tracker/internal/http"
-	"github.com/danielgundim/finance-tracker/internal/finance"
+	httpapi "github.com/bcosta17/Finance-Tracker/internal/http"
+	"github.com/bcosta17/Finance-Tracker/internal/finance"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // driver pgx para database/sql
 )

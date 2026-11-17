@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/danielgundim/finance-tracker/internal/finance"
+	"github.com/bcosta17/Finance-Tracker/internal/finance"
 )
 
 func NewMux(svc *finance.Service) *http.ServeMux {
