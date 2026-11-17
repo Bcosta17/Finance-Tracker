@@ -64,11 +64,11 @@ jobs:
 
             set -euo pipefail
 
-            # Diretório utilizado pelo serviço
-            APP_DIR="/home/$(whoami)/financetracker"
+            APP_DIR="/home/ec2-user/financetracker"
             APP="$APP_DIR/finance-tracker"
 
-            echo "Iniciando deploy em: $APP"
+            echo "🔄 Parando serviço..."
+            sudo systemctl stop finance-tracker
 
             # Verificar se o diretório existe
             if [ ! -d "$APP_DIR" ]; then
@@ -76,35 +76,31 @@ jobs:
               exit 1
             fi
 
-            # Parar o serviço
-            sudo systemctl stop finance-tracker
+            echo "💾 Fazendo backup do binário atual..."
 
-            # Backup do binário anterior, caso exista
             if sudo test -f "$APP"; then
               sudo cp "$APP" "$APP.backup"
-              echo "Backup criado: $APP.backup"
             fi
 
-            # Substituir o binário
+            echo "📦 Instalando nova versão..."
+
             sudo mv /tmp/finance-tracker "$APP"
 
-            # Ajustar permissões
             sudo chmod +x "$APP"
-            sudo chown "$(whoami):$(whoami)" "$APP"
+            sudo chown ec2-user:ec2-user "$APP"
 
-            # Reiniciar o serviço
+            echo "🚀 Reiniciando serviço..."
             sudo systemctl restart finance-tracker
 
-            # Verificar se o serviço está ativo
+            echo "🔍 Verificando serviço..."
             sudo systemctl is-active --quiet finance-tracker
 
-            echo "Serviço iniciado. Aguardando health check..."
+            echo "🏥 Executando health check..."
 
-            # Aguardar a aplicação responder (até 20 segundos)
             for i in {1..10}; do
               if curl -fsS http://localhost:8080/health; then
                 echo ""
-                echo "Health check realizado com sucesso!"
+                echo "✅ Deploy realizado com sucesso!"
                 exit 0
               fi
 
@@ -112,9 +108,8 @@ jobs:
               sleep 2
             done
 
-            echo "ERRO: Health check falhou após 20 segundos."
+            echo "❌ Health check falhou!"
 
-            # Exibir logs para facilitar o diagnóstico
             sudo journalctl -u finance-tracker -n 50 --no-pager
 
             exit 1
